@@ -7,6 +7,28 @@
 /// Recommended use: when developing make your constants in `build.rs`. Once your constants are
 /// fairly stable create a script instead and have your constants file be generated in either a
 /// single file or an external crate that you can bring in as a dependency.
+/// 
+/// # Example
+/// 
+/// See `ConstWriter` for how to use in a build.rs or script.
+/// To then import a "constants.rs" file created in `build.rs` use:
+/// 
+/// ```c
+/// #[macro_use]
+/// extern crate build_const;
+/// 
+/// build_const!("constants.rs");
+/// println!("VALUE: {}", VALUE);
+/// println!("VALUE: {}", ARRAY);
+/// ```
+/// 
+/// For writing constants in a script, the macro `src_file!` is also provided.
+/// ```c
+/// // will write files to `/src/constants.rs`
+/// let mut consts = ConstWriter::from_path(&Path::from(src_file!("constants.rs"))).unwrap();
+/// // ... use consts
+/// ```
+/// 
 use std::env;
 use std::fs;
 use std::fmt::Debug;
@@ -53,6 +75,7 @@ macro_rules! src_file {
 
 /// Primary object used to write constant files.
 /// 
+/// # Example
 /// ```no_run
 /// # use std::path::Path;
 /// # #[derive(Debug)]
