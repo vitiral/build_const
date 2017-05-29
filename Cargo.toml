@@ -1,4 +1,4 @@
 [package]
 authors = ["Garrett Berg <vitiral@gmail.com>"]
-name = "build_static"
+name = "build_const"
 version = "0.1.0"

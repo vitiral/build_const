@@ -12,18 +12,18 @@ fn create_constants() {
 
     let values: Vec<u8> = vec![1, 2, 3, 36];
 
-    // add a single value as a result of a calculation
+    // Add a single value as a result of a calculation
     consts.add_value("VALUE", "u8", values.iter().sum::<u8>());
 
-    // add a sized array
+    // Add a sized array
     consts.add_array("ARRAY", "u8", &values);
 
     let strs = vec!["foo", "bar", "baz"];
 
-    // add strings
+    // Add strings
     consts.add_array("STRS", "&str", &strs);
 
-    // add strings with some formatting
+    // Add strings with some formatting
     let strs2: Vec<String> = strs
         .iter()
         .enumerate()

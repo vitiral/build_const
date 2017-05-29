@@ -4,8 +4,12 @@ name = "test-pass"
 version = "0.1.0"
 build = "build.rs"
 
-[build-dependencies]
+[dependencies]
+[dependencies.build_const]
+optional = false
+path = "../.."
 
-[build-dependencies.build_static]
+[build-dependencies]
+[build-dependencies.build_const]
 optional = false
 path = "../.."

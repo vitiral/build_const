@@ -1,3 +1,12 @@
+/// `build_const`: crate for creating constants in your build script
+///
+/// The build_const crate exists to help create rust constant files at compile time or in a
+/// generating script. It is ultra simple and lightweight, making constant creation a simple
+/// matter.
+/// 
+/// Recommended use: when developing make your constants in `build.rs`. Once your constants are
+/// fairly stable create a script instead and have your constants file be generated in either a
+/// single file or an external crate that you can bring in as a dependency.
 use std::env;
 use std::fs;
 use std::fmt::Debug;
@@ -6,6 +15,11 @@ use std::io::Write;
 use std::path::Path;
 use std::str;
 
+macro_rules! build_const {
+    ( $( $mod_name:expr ),* ) => {
+        include!(concat!(env!("OUT_DIR"), concat!("/", $mod_name)));
+    };
+}
 
 pub struct ConstWriter {
     f: fs::File,
@@ -17,10 +31,8 @@ pub struct ConstValueWriter {
 }
 
 impl ConstWriter {
-    /// Get a new dependency writer. Use this to write your dependencies
-    /// (`use mylib` statements) and then call `finish` to write your
-    /// actual constants.
-    pub fn new(mod_name: &str) -> io::Result<ConstWriter> {
+    /// Create a ConstWriter to be used for your crate's `build.rs`
+    pub fn for_build(mod_name: &str) -> io::Result<ConstWriter> {
         let out_dir = env::var("OUT_DIR").unwrap();
         let mod_name = format!("{}.rs", mod_name);
         let dest_path = Path::new(&out_dir).join(mod_name);
@@ -30,9 +42,16 @@ impl ConstWriter {
         })
     }
 
-    /// Add a dependency to your constants file.
-    pub fn add_dependency(&mut self, lib: &str) {
-        write!(self.f, "pub use {};\n", lib).unwrap();
+    /// Create a new ConstWriter to write to an path. If a file
+    /// already exists at the path then it will be deleted.
+    pub fn from_path(path: &Path) -> io::Result<ConstWriter> {
+        let f = fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(path)?;
+        Ok(ConstWriter {
+            f: f,
+        })
     }
 
     /// finish writing dependencies and start writing constants
@@ -40,40 +59,143 @@ impl ConstWriter {
         ConstValueWriter { f: self.f }
     }
 
+    /// Add a dependency to your constants file.
+    pub fn add_dependency(&mut self, lib: &str) {
+        write!(self.f, "pub use {};\n", lib).unwrap();
+    }
+
+    /// Add a raw string to the constants file.
+    /// 
+    /// This method only changes `raw` by adding a `\n` at the end.
+    pub fn add_raw(&mut self, raw: &str) {
+        write!(self.f, "{}\n", raw).unwrap();
+    }
+
 }
 
 impl ConstValueWriter {
-    /// Add a value to your declared constants string.
+    /// Add a value to the constants file.
     /// 
     /// You have to manually specify the `name`, type (`ty`) and `value`
-    /// of the constant you want to add and it will be added.
+    /// of the constant you want to add.
     /// 
-    /// You can use a crate like t_bang to make this more ergonomic.
+    /// The `value` uses the `Debug` trait to determine the formating of
+    /// the value being added. If `Debug` is not accurate or will not work,
+    /// you must use `add_value_raw` instead and format it yourself.
     pub fn add_value<T: Debug>(&mut self, name: &str, ty: &str, value: T) {
-        let value_str = format!("{:?}", value);
+        self.add_value_raw(name, ty, &format!("{:?}", value));
+    }
+
+    /// Add a pre-formatted value to the constants file.
+    /// 
+    /// `add_value` depends on `Debug` being implemented in such a way
+    /// that it accurately represents the type's creation. Sometimes that
+    /// cannot be relied on and `add_value_raw` has to be used instead.
+    pub fn add_value_raw(&mut self, name: &str, ty: &str, raw_value: &str) {
         write!(
             self.f, "pub const {}: {} = {};\n", 
             name, 
             ty,
-            value_str
+            raw_value,
         ).unwrap();
     }
 
-    pub fn add_array<T: Debug>(&mut self, name: &str, ty: &str, value: &[T]) {
-        let value_str = format!("{:?}", value);
-
-        write!(
-            self.f, "pub const {}: [{}; {}] = {};\n", 
-            name, 
-            ty,
-            value.len(),
-            value_str,
-        ).unwrap();
+    /// Add an array of len > 0 to the constants
+    /// 
+    /// You have to manually specify the `name`, type (`ty`) of the **items** and 
+    /// `values` of the array constant you want to add. The length of the array
+    /// is determined automatically.
+    /// 
+    /// Example: `const.add_array("foo", "u16", &[1,2,3])`
+    /// 
+    /// The `value` of each item uses the `Debug` trait to determine the 
+    /// formatting of the value being added. If `Debug` is not accurate or will 
+    /// not work, you must use `add_array_raw` instead and format it yourself.
+    pub fn add_array<T: Debug>(&mut self, name: &str, ty: &str, values: &[T]) {
+        write_array(&mut self.f, name, ty, values);
     }
 
+    /// Add an array of pre-formatted values to the constants file. The length of the array is
+    /// determined automatically.
+    /// 
+    /// `add_array` depends on `Debug` being implemented for each item in such a way that it
+    /// accurately represents the item's creation. Sometimes that cannot be relied on and
+    /// `add_array_raw` has to be used instead.
+    pub fn add_array_raw(&mut self, name: &str, ty: &str, raw_values: &[&str]) {
+        write_array_raw(&mut self.f, name, ty, raw_values);
+    }
+
+    /// Add a raw string to the constants file.
+    /// 
+    /// This method only changes `raw` by adding a `\n` at the end.
+    pub fn add_raw(&mut self, raw: &str) {
+        write!(self.f, "{}\n", raw).unwrap();
+    }
+
+    /// Finish writing to the constants file and consume self.
     pub fn finish(&mut self) {
         self.f.flush().unwrap();
     }
+
+}
+
+// Public Functions
+
+/// Write an array and return the array's full type representation.
+/// 
+/// This can be used to create nested array constant types.
+pub fn write_array<T: Debug, W: Write>(w: &mut W, name: &str, ty: &str, values: &[T]) 
+    -> String
+{
+    assert!(
+        !values.is_empty(), 
+        "attempting to add an array of len zero. If this is intentional, use \
+        add_value_raw instead."
+    );
+    let full_ty = write_array_header(w, name, ty, values.len());
+    for v in values.iter() {
+        write_array_item_raw(w, &format!("{:?}", v));
+    }
+    write_array_end(w);
+    full_ty
+}
+
+/// Write an array of raw values and return the array's full type representation.
+/// 
+/// This can be used to create nested array constant types.
+pub fn write_array_raw<W: Write>(
+        w: &mut W, name: &str, ty: &str, raw_values: &[&str]
+    ) 
+    -> String
+{
+    assert!(
+        !raw_values.is_empty(), 
+        "attempting to add an array of len zero. If this is intentional, use \
+        add_value_raw instead."
+    );
+    let full_ty = write_array_header(w, name, ty, raw_values.len());
+    for &v in raw_values {
+        write_array_item_raw(w, v);
+    }
+    write_array_end(w);
+    full_ty
+}
+
+// Helpers
+
+/// Write the array header and return the array's full type.
+fn write_array_header<W: Write>(w: &mut W, name: &str, ty: &str, len: usize) -> String {
+    let full_ty = format!("[{}; {}]", ty, len);
+    write!(w, "pub const {}: {} = [\n", name, &full_ty).unwrap();
+    full_ty
+}
+
+fn write_array_item_raw<W: Write>(w: &mut W, raw_item: &str) {
+    write!(w, "    {},\n", raw_item).unwrap()
+}
+
+fn write_array_end<W: Write>(w: &mut W) {
+    write!(w, "];\n").unwrap();
 }
 
 #[test]

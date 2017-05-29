@@ -1,6 +1,8 @@
 
+extern crate build_const;
 
-include!(concat!(env!("OUT_DIR"), "/constants.rs"));
+
+//include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
 fn main() {
     println!("VALUE: {}", VALUE);
