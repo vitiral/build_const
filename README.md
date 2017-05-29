@@ -1,57 +1,59 @@
 # `build_const`: crate for creating constants in your build script
 
-This is a crate for easily creating constants in your build script.
-Simply write a `build.rs` like:
+This is a crate for easily creating constants in a script or `build.rs` file.
+
+## Simple Example
+
+**Cargo.toml**:
 ```
-extern crate build_static;
+[package]
+# ...
+build = "build.rs"
+
+[dependencies]
+build_const = "0.1"
+
+[build-dependencies]
+build_const = "0.1"
+```
+
+**build.rs**:
+```
+extern crate build_const;
 
 fn create_constants() {
-    let mut consts = build_static::ConstWriter::new("constants")
+    let mut consts = build_const::ConstWriter::for_build("constants")
         .unwrap()
+        // you can write dependencies before `finish_dependencies`
         .finish_dependencies();
 
+    // do some "complex" calculations
     let values: Vec<u8> = vec![1, 2, 3, 36];
 
-    // Add a single value as a result of a calculation
+    // add both the array and the calculations to your constants
     consts.add_value("VALUE", "u8", values.iter().sum::<u8>());
-
-    // Add a sized array
     consts.add_array("ARRAY", "u8", &values);
-
-    let strs = vec!["foo", "bar", "baz"];
-
-    // Add strings
-    consts.add_array("STRS", "&str", &strs);
-
-    // Add strings with some formatting
-    let strs2: Vec<String> = strs
-        .iter()
-        .enumerate()
-        .map(|(i, s)| format!("{}: {}", i, s)).collect();
-    consts.add_array("STRS2", "&str", &strs2);
-
-    // flush the file and finish
-    consts.finish();
+    consts.finish()
 }
-
-fn main() {
-    create_constants();
-}
-
-
 ```
 
-Then use the library like:
+**main.rs**
 ```
-include!(concat!(env!("OUT_DIR"), "/constants.rs"));
+#[macro_use]
+extern crate build_const;
+
+build_const!("constants.rs");
 
 fn main() {
     println!("VALUE: {}", VALUE);
     println!("VALUE: {}", ARRAY);
-    println!("VALUE: {}", STRS);
-    println!("VALUE: {}", STRS2);
 }
-
 ```
 
-See the `test_crates/` dir for more examples.
+## Using in a Script
+Using in a script is much the same, except you should use
+`ConstWriter::from_path` and give it the path to your constants file.
+
+# License
+The license is MIT. This is intended to be absolutely open source software and
+useable for any application.

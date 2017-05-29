@@ -15,17 +15,77 @@ use std::io::Write;
 use std::path::Path;
 use std::str;
 
+/// Shortcut macro which expands to the same module path used in
+/// `ConstWriter::for_build(mod_name)`.
+/// 
+/// If you don't want to include macros, this is simply a one liner:
+/// ```
+/// include!(concat!(env!("OUT_DIR"), concat!("/", $mod_name))
+/// ```
+#[macro_export]
 macro_rules! build_const {
-    ( $( $mod_name:expr ),* ) => {
+    ( $mod_name:expr ) => {
         include!(concat!(env!("OUT_DIR"), concat!("/", $mod_name)));
     };
 }
 
+/// Macro which returns the path to file in your `src/` directory.
+/// 
+/// Example:
+/// ```
+/// src_file!("constants.rs")
+/// ```
+/// returns `/path/to/project/src/constants.rs`
+/// 
+/// If you need a more custom path, the basic implementation is:
+/// ```
+/// concat!(env!("CARGO_MANIFEST_DIR"), "/src/path/to/file")
+/// ```
+#[macro_export]
+macro_rules! src_file {
+    ( $file_name:expr) => {
+        concat!(
+            env!("CARGO_MANIFEST_DIR"), 
+            concat!("/", concat!("src", concat!("/", $file_name)))
+        )
+    };
+}
+
+/// Primary object used to write constant files.
+/// 
+/// ```no_run
+/// # use std::path::Path;
+/// # #[derive(Debug)]
+/// # struct Point { x: u8, y: u8 }
+/// use build_const::ConstWriter;
+/// 
+/// // use `for_build` in `build.rs`
+/// let mut consts = ConstWriter::from_path(
+///     &Path::new("/tmp/constants.rs")
+/// ).unwrap();
+/// 
+/// // add an external dependency (`use xyz::Point`)
+/// consts.add_dependency("xyz::Point");
+/// 
+/// // finish dependencies and starting writing constants
+/// let mut consts = consts.finish_dependencies();
+///
+/// // add an array of values
+/// let values: Vec<u8> = vec![1, 2, 3, 36];
+/// consts.add_array("ARRAY", "u8", &values);
+///
+/// // Add a value that is a result of "complex" calculations
+/// consts.add_value("VALUE", "u8", values.iter().sum::<u8>());
+/// 
+/// // Add a value from an external crate (must implement `Debug`)
+/// consts.add_value("VALUE", "Point", &Point { x: 3, y: 7});
+/// ```
 pub struct ConstWriter {
     f: fs::File,
 }
 
-/// the writer object for specifying constants.
+/// Created from `ConstWriter::finish_dependencies`. See
+/// documentation for `ConstWriter`.
 pub struct ConstValueWriter {
     f: fs::File,
 }
@@ -196,20 +256,4 @@ fn write_array_item_raw<W: Write>(w: &mut W, raw_item: &str) {
 
 fn write_array_end<W: Write>(w: &mut W) {
     write!(w, "];\n").unwrap();
-}
-
-#[test]
-fn test_basic() {
-    //let mut data: Vec<u8> = Vec::new();
-    //{
-    //    let mut w = io::BufWriter::new(&mut data);
-    //    let mut dep_writer = ConstWriter::new("fake", &mut w);
-    //    dep_writer.add_dependency("foobar");
-    //    let mut value_writer = dep_writer.finish();
-    //    value_writer.add_value("foo", "foobar::Foo", "Foo { bar: 7 }");
-    //}
-    //assert_eq!("pub use foobar;\n\
-    //    pub const foo: foobar::Foo = Foo { bar: 7 };\n",
-    //    str::from_utf8(&data).unwrap()
-    //);
 }

@@ -1,8 +1,7 @@
 extern crate build_const;
 
-
 fn create_constants() {
-    let mut consts = build_static::ConstWriter::for_build("constants")
+    let mut consts = build_const::ConstWriter::for_build("constants")
         .unwrap()
         .finish_dependencies();
 
