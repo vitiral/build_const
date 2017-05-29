@@ -1,6 +1,6 @@
 [package]
 authors = ["Garrett Berg <vitiral@gmail.com>"]
-name = "test-pass"
+name = "test-example"
 version = "0.1.0"
 build = "build.rs"
 
