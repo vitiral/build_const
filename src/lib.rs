@@ -1,34 +1,34 @@
-/// `build_const`: crate for creating constants in your build script
-///
-/// The build_const crate exists to help create rust constant files at compile time or in a
-/// generating script. It is ultra simple and lightweight, making constant creation a simple
-/// matter.
-/// 
-/// Recommended use: when developing make your constants in `build.rs`. Once your constants are
-/// fairly stable create a script instead and have your constants file be generated in either a
-/// single file or an external crate that you can bring in as a dependency.
-/// 
-/// # Example
-/// 
-/// See `ConstWriter` for how to use in a build.rs or script.
-/// To then import a "constants.rs" file created in `build.rs` use:
-/// 
-/// ```c
-/// #[macro_use]
-/// extern crate build_const;
-/// 
-/// build_const!("constants.rs");
-/// println!("VALUE: {}", VALUE);
-/// println!("VALUE: {}", ARRAY);
-/// ```
-/// 
-/// For writing constants in a script, the macro `src_file!` is also provided.
-/// ```c
-/// // will write files to `/src/constants.rs`
-/// let mut consts = ConstWriter::from_path(&Path::from(src_file!("constants.rs"))).unwrap();
-/// // ... use consts
-/// ```
-/// 
+//! `build_const`: crate for creating constants in your build script
+//!
+//! The build_const crate exists to help create rust constant files at compile time or in a
+//! generating script. It is ultra simple and lightweight, making constant creation a simple
+//! matter.
+//! 
+//! Recommended use: when developing make your constants in `build.rs`. Once your constants are
+//! fairly stable create a script instead and have your constants file be generated in either a
+//! single file or an external crate that you can bring in as a dependency.
+//! 
+//! # Example
+//! 
+//! See `ConstWriter` for how to use in a build.rs or script.
+//! To then import a "constants.rs" file created in `build.rs` use:
+//! 
+//! ```c
+//! #[macro_use]
+//! extern crate build_const;
+//! 
+//! build_const!("constants.rs");
+//! println!("VALUE: {}", VALUE);
+//! println!("VALUE: {}", ARRAY);
+//! ```
+//! 
+//! For writing constants in a script, the macro `src_file!` is also provided.
+//! ```c
+//! // will write files to `/src/constants.rs`
+//! let mut consts = ConstWriter::from_path(&Path::from(src_file!("constants.rs"))).unwrap();
+//! // ... use consts
+//! ```
+//! 
 use std::env;
 use std::fs;
 use std::fmt::Debug;

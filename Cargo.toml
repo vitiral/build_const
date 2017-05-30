@@ -4,5 +4,5 @@ authors = ["Garrett Berg <vitiral@gmail.com>"]
 description = "library for creating importable constants from build.rs or a script"
 keywords = ["embedded", "no_std", "build", "const", "static"]
 license = "MIT"
-repository = "https://github.com/build_const"
-version = "0.1.0"
+repository = "https://github.com/vitiral/build_const"
+version = "0.1.1"
