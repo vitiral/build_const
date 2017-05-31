@@ -1,12 +1,11 @@
+#![no_std]
+
 #[macro_use]
 extern crate build_const;
 
 build_const!("constants");
 
 fn main() {
-    println!("VALUE: {}", VALUE);
-    println!("{}", env!("CARGO_MANIFEST_DIR"));
-    println!("{}", src_file!("foo.rs"));
 }
 
 #[test]

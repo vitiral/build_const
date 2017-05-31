@@ -1,0 +1,16 @@
+[package]
+authors = ["Garrett Berg <vitiral@gmail.com>"]
+name = "test-no-std"
+version = "0.1.0"
+build = "build.rs"
+
+[dependencies]
+[dependencies.build_const]
+optional = false
+default-features = false
+path = "../.."
+
+[build-dependencies]
+[build-dependencies.build_const]
+optional = false
+path = "../.."
