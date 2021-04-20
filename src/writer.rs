@@ -3,7 +3,7 @@ use std::fs;
 use std::fmt::{Debug, Display};
 use std::io;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str;
 
 
@@ -61,13 +61,14 @@ impl ConstWriter {
 
     /// Create a new ConstWriter to write to an path. If a file
     /// already exists at the path then it will be deleted.
-    pub fn from_path(path: &Path) -> io::Result<ConstWriter> {
+    pub fn from_path(path: impl Into<PathBuf>) -> io::Result<ConstWriter> {
         let f = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(path)?;
+            .create(true)
+            .open(path.into())?;
         Ok(ConstWriter {
-            f: f,
+            f,
         })
     }
 
